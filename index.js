@@ -57,7 +57,8 @@ const ShareholderCheckinApp = () => {
         videoRef.current.setAttribute("playsinline", true);
         videoRef.current.play();
         setScanningStatus('Caméra prête. Présentez le QR code.');
-        requestAnimationFrame(scanQRCode);
+        console.log("Starting QR scan");
+        scanQRCode();
       })
       .catch(function(error) {
         console.error("Erreur d'accès à la caméra:", error);
@@ -66,17 +67,20 @@ const ShareholderCheckinApp = () => {
   };
 
   const scanQRCode = () => {
+    console.log("Scanning...");
     if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      console.log("Video ready");
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      console.log("Image data:", imageData.width, imageData.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       
       if (code) {
-        console.log("QR code trouvé:", code.data);
+        console.log("QR code found:", code.data);
         try {
           const parsedData = JSON.parse(code.data);
           setQrContent(parsedData);
@@ -90,9 +94,11 @@ const ShareholderCheckinApp = () => {
           setScanningStatus('QR code invalide. Veuillez réessayer.');
         }
       } else {
+        console.log("No QR code found");
         requestAnimationFrame(scanQRCode);
       }
     } else {
+      console.log("Video not ready");
       requestAnimationFrame(scanQRCode);
     }
   };
