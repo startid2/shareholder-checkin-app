@@ -57,11 +57,56 @@ const ShareholderCheckinApp = () => {
         videoRef.current.setAttribute("playsinline", true);
         videoRef.current.play();
         setScanningStatus('Caméra prête. Présentez le QR code.');
+        requestAnimationFrame(scanQRCode);
       })
       .catch(function(error) {
         console.error("Erreur d'accès à la caméra:", error);
         setScanningStatus('Erreur d\'accès à la caméra. Veuillez vérifier les permissions.');
       });
+  };
+
+  const scanQRCode = () => {
+    if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      
+      if (code) {
+        console.log("QR code trouvé:", code.data);
+        try {
+          const parsedData = JSON.parse(code.data);
+          setQrContent(parsedData);
+          setShowScanner(false);
+          setScanning(false);
+          if (videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+          }
+        } catch (error) {
+          console.error("Erreur lors du parsing du QR code:", error);
+          setScanningStatus('QR code invalide. Veuillez réessayer.');
+        }
+      } else {
+        requestAnimationFrame(scanQRCode);
+      }
+    } else {
+      requestAnimationFrame(scanQRCode);
+    }
+  };
+
+  const processScannedData = (data) => {
+    const matchedShareholder = shareholders.find(s => 
+      s.prenom === data.prenom && s.nom === data.nom && s.email === data.email
+    );
+    if (matchedShareholder) {
+      handleManualCheckin(matchedShareholder.id);
+      setScanningStatus(`Check-in effectué pour ${data.prenom} ${data.nom}`);
+    } else {
+      setScanningStatus('Actionnaire non trouvé');
+    }
   };
 
   const handleLogin = () => {
@@ -135,6 +180,32 @@ const ShareholderCheckinApp = () => {
               className="w-full p-2 bg-red-500 text-white rounded"
             >
               Fermer le scanner
+            </button>
+          </div>
+        </div>
+      )}
+
+      {qrContent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded w-full max-w-md">
+            <h2 className="text-xl font-bold mb-2">Résultat du scan</h2>
+            <pre className="bg-gray-100 p-2 rounded mb-4 overflow-auto">
+              {JSON.stringify(qrContent, null, 2)}
+            </pre>
+            <button 
+              onClick={() => {
+                processScannedData(qrContent);
+                setQrContent(null);
+              }}
+              className="w-full p-2 bg-green-500 text-white rounded mb-2"
+            >
+              Confirmer le check-in
+            </button>
+            <button 
+              onClick={() => setQrContent(null)}
+              className="w-full p-2 bg-red-500 text-white rounded"
+            >
+              Fermer
             </button>
           </div>
         </div>
