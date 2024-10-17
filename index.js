@@ -1,13 +1,12 @@
 const { useState, useEffect, useRef } = React;
 
 const predefinedShareholders = [
-const predefinedShareholders = [
   { id: 1, prenom: 'Alexander', nom: 'Imhoff', email: 'alexander.imhoff@swisstruth.ch', checkedIn: false },
   { id: 2, prenom: 'Alexander', nom: 'Imhoff', email: 'alexander@startid.ch', checkedIn: false },
   { id: 3, prenom: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com', checkedIn: false },
   { id: 4, prenom: 'Marie', nom: 'Martin', email: 'marie.martin@example.com', checkedIn: false },
   { id: 5, prenom: 'Pierre', nom: 'Lefebvre', email: 'pierre.lefebvre@example.com', checkedIn: false }
-]
+];
 const PASSWORD = "motdepasse123";
 
 const ShareholderCheckinApp = () => {
