@@ -9,6 +9,23 @@ const predefinedShareholders = [
 
 const PASSWORD = "motdepasse123";
 
+const QRContentOverlay = ({ content, onClose, onCheckin }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="bg-white p-4 rounded w-full max-w-md">
+      <h2 className="text-xl font-bold mb-2">Contenu du QR Code</h2>
+      <pre className="bg-gray-100 p-2 rounded mb-4 overflow-auto">{JSON.stringify(content, null, 2)}</pre>
+      <div className="flex justify-between">
+        <button onClick={onCheckin} className="bg-green-500 text-white p-2 rounded">
+          Check-in
+        </button>
+        <button onClick={onClose} className="bg-red-500 text-white p-2 rounded">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const ShareholderCheckinApp = () => {
   const [shareholders, setShareholders] = useState(predefinedShareholders);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +35,7 @@ const ShareholderCheckinApp = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [qrContent, setQrContent] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -28,6 +46,9 @@ const ShareholderCheckinApp = () => {
     setShareholders(shareholders.map(s => 
       s.id === id ? { ...s, checkedIn: !s.checkedIn } : s
     ));
+    if (qrContent) {
+      setQrContent(null);
+    }
   };
 
   const handleSearch = (e) => {
@@ -71,10 +92,13 @@ const ShareholderCheckinApp = () => {
       });
       if (code) {
         console.log("Found QR code", code.data);
-        processScannedData(JSON.parse(code.data));
-        setShowScanner(false);
-        setScanning(false);
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        try {
+          const parsedData = JSON.parse(code.data);
+          processScannedData(parsedData);
+        } catch (error) {
+          console.error("Erreur lors du parsing du QR code:", error);
+          alert("QR code invalide");
+        }
       } else {
         requestAnimationFrame(tick);
       }
@@ -84,14 +108,11 @@ const ShareholderCheckinApp = () => {
   };
 
   const processScannedData = (data) => {
-    const matchedShareholder = shareholders.find(s => 
-      s.prenom === data.prenom && s.nom === data.nom && s.email === data.email
-    );
-    if (matchedShareholder) {
-      handleManualCheckin(matchedShareholder.id);
-      setScanResult(`Checked in: ${data.prenom} ${data.nom}`);
-    } else {
-      setScanResult('Shareholder not found');
+    setQrContent(data);
+    setShowScanner(false);
+    setScanning(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
     }
   };
 
@@ -168,6 +189,23 @@ const ShareholderCheckinApp = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {qrContent && (
+        <QRContentOverlay
+          content={qrContent}
+          onClose={() => setQrContent(null)}
+          onCheckin={() => {
+            const matchedShareholder = shareholders.find(s => 
+              s.prenom === qrContent.prenom && s.nom === qrContent.nom && s.email === qrContent.email
+            );
+            if (matchedShareholder) {
+              handleManualCheckin(matchedShareholder.id);
+            } else {
+              alert("Actionnaire non trouvé");
+            }
+          }}
+        />
       )}
 
       <div className="mb-4">
