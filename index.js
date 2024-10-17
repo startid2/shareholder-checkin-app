@@ -9,37 +9,17 @@ const predefinedShareholders = [
 
 const PASSWORD = "motdepasse123";
 
-const QRContentOverlay = ({ content, onClose, onCheckin }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="bg-white p-4 rounded w-full max-w-md">
-      <h2 className="text-xl font-bold mb-2">Contenu du QR Code</h2>
-      <pre className="bg-gray-100 p-2 rounded mb-4 overflow-auto">{JSON.stringify(content, null, 2)}</pre>
-      <div className="flex justify-between">
-        <button onClick={onCheckin} className="bg-green-500 text-white p-2 rounded">
-          Check-in
-        </button>
-        <button onClick={onClose} className="bg-red-500 text-white p-2 rounded">
-          Fermer
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
 const ShareholderCheckinApp = () => {
   const [shareholders, setShareholders] = useState(predefinedShareholders);
   const [searchTerm, setSearchTerm] = useState('');
   const [showScanner, setShowScanner] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [qrContent, setQrContent] = useState(null);
   const [scanningStatus, setScanningStatus] = useState('');
-  const [capturedImage, setCapturedImage] = useState(null);
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
 
   const checkedInCount = shareholders.filter(s => s.checkedIn).length;
   const notCheckedInCount = shareholders.length - checkedInCount;
@@ -69,61 +49,19 @@ const ShareholderCheckinApp = () => {
   const handleScanQR = () => {
     setShowScanner(true);
     setScanning(true);
-    startScanner();
-  };
-
-  const startScanner = () => {
     setScanningStatus('Initialisation de la caméra...');
+    
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(function(stream) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute("playsinline", true);
         videoRef.current.play();
-        setScanningStatus('Caméra prête. Cliquez sur Capturer quand le QR code est visible.');
+        setScanningStatus('Caméra prête. Présentez le QR code.');
       })
       .catch(function(error) {
         console.error("Erreur d'accès à la caméra:", error);
-        setScanningStatus('Erreur d'accès à la caméra. Veuillez vérifier les permissions.');
+        setScanningStatus('Erreur d\'accès à la caméra. Veuillez vérifier les permissions.');
       });
-  };
-
-  const captureImage = () => {
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    setCapturedImage(canvas.toDataURL('image/jpeg'));
-    processImage(canvas);
-  };
-
-  const processImage = (canvas) => {
-    const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    });
-
-    if (code) {
-      console.log("QR code found", code.data);
-      try {
-        const parsedData = JSON.parse(code.data);
-        processScannedData(parsedData);
-      } catch (error) {
-        console.error("Erreur lors du parsing du QR code:", error);
-        alert("QR code invalide");
-      }
-    } else {
-      alert("Aucun QR code détecté. Veuillez réessayer.");
-    }
-  };
-
-  const processScannedData = (data) => {
-    setQrContent(data);
-    setShowScanner(false);
-    setScanning(false);
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    }
   };
 
   const handleLogin = () => {
@@ -185,19 +123,11 @@ const ShareholderCheckinApp = () => {
             <h2 className="text-xl font-bold mb-2">Scanner QR</h2>
             <p className="mb-2">{scanningStatus}</p>
             <video ref={videoRef} className="w-full mb-2"></video>
-            {capturedImage && <img src={capturedImage} alt="Captured" className="w-full mb-2" />}
-            <button 
-              onClick={captureImage}
-              className="w-full mb-2 p-2 bg-blue-500 text-white rounded"
-            >
-              Capturer
-            </button>
             <button 
               onClick={() => {
                 setShowScanner(false);
                 setScanning(false);
                 setScanningStatus('');
-                setCapturedImage(null);
                 if (videoRef.current && videoRef.current.srcObject) {
                   videoRef.current.srcObject.getTracks().forEach(track => track.stop());
                 }
@@ -208,23 +138,6 @@ const ShareholderCheckinApp = () => {
             </button>
           </div>
         </div>
-      )}
-
-      {qrContent && (
-        <QRContentOverlay
-          content={qrContent}
-          onClose={() => setQrContent(null)}
-          onCheckin={() => {
-            const matchedShareholder = shareholders.find(s => 
-              s.prenom === qrContent.prenom && s.nom === qrContent.nom && s.email === qrContent.email
-            );
-            if (matchedShareholder) {
-              handleManualCheckin(matchedShareholder.id);
-            } else {
-              alert("Actionnaire non trouvé");
-            }
-          }}
-        />
       )}
 
       <div className="mb-4">
