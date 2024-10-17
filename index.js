@@ -7,7 +7,7 @@ const predefinedShareholders = [
   { id: 3, prenom: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com', checkedIn: false },
   { id: 4, prenom: 'Marie', nom: 'Martin', email: 'marie.martin@example.com', checkedIn: false },
   { id: 5, prenom: 'Pierre', nom: 'Lefebvre', email: 'pierre.lefebvre@example.com', checkedIn: false }
-];
+]
 const PASSWORD = "motdepasse123";
 
 const ShareholderCheckinApp = () => {
